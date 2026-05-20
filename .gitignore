@@ -1,0 +1,55 @@
+# Build directories
+build/
+NebulaVST/build/
+*/Debug/
+*/Release/
+*/RelWithDebInfo/
+*/MinSizeRel/
+x64/
+WIN_PDB64/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+*.vcxproj
+*.vcxproj.filters
+*.slnx
+*.sln
+*.user
+*.aps
+*.ncb
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Compiled objects and binaries
+*.obj
+*.o
+*.lib
+*.a
+*.dll
+*.exe
+*.pdb
+*.ilk
+*.exp
+*.map
+*.manifest
+*.res
+*.tlog
+*.recipe
+*.lastbuildstate
+
+# IDE and editor files
+.vs/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Dependencies that should be submodules
+external/vst3sdk/
+
+# Generated headers
+projectversion.h
+EmbeddedHtml.h

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>NEBULA · VST3</title>
+<style>
+  :root{
+    --bg1:#0c0e14; --bg2:#151823; --panel:#1c2030; --panel2:#23283a;
+    --line:#2c3148; --text:#d8def0; --muted:#7b85a3;
+    --accent:#ff7a3d; --accent2:#48d8ff; --accent3:#b075ff;
+    --green:#5dd39e;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;
+    background:radial-gradient(ellipse at top,#1a1f30 0%,var(--bg1) 70%);
+    color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;
+    user-select:none;overflow:hidden}
+  body{display:flex;flex-direction:column}
+
+  header{display:flex;align-items:center;justify-content:space-between;
+    padding:8px 18px;background:linear-gradient(180deg,#1a1e2e,#13162050);
+    border-bottom:1px solid var(--line);flex:0 0 auto}
+  .logo{font-size:20px;font-weight:800;letter-spacing:3px;
+    background:linear-gradient(90deg,var(--accent),var(--accent3),var(--accent2));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .logo small{font-weight:400;letter-spacing:1px;color:var(--muted);margin-left:8px;font-size:11px}
+  .hint{color:var(--muted);font-size:11px}
+
+  main{flex:1;display:grid;
+       grid-template-columns:repeat(14,1fr);
+       grid-template-rows:1fr 1fr;
+       gap:8px;padding:10px;overflow:hidden;min-height:0}
+  .module{background:linear-gradient(180deg,var(--panel),var(--panel2));
+    border:1px solid var(--line);border-radius:10px;padding:8px 10px;
+    box-shadow:inset 0 1px 0 #ffffff08, 0 2px 8px #00000060;
+    display:flex;flex-direction:column;gap:5px;min-width:0;min-height:0;overflow:hidden}
+  .module h3{margin:0 0 2px 0;font-size:10px;letter-spacing:2.5px;color:var(--muted);font-weight:600}
+  .module h3 .dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+    background:var(--accent);margin-right:6px;vertical-align:middle;box-shadow:0 0 6px var(--accent)}
+  .row{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;justify-content:space-around}
+  .center{display:flex;justify-content:center}
+
+  .knob-wrap{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:48px}
+  .knob{width:44px;height:44px;border-radius:50%;
+    background:radial-gradient(circle at 30% 30%,#3a4060,#15182380);
+    border:1px solid #00000080;position:relative;cursor:ns-resize;
+    box-shadow:inset 0 2px 4px #ffffff20, inset 0 -2px 4px #00000080, 0 2px 4px #00000080}
+  .knob::before{content:'';position:absolute;inset:5px;border-radius:50%;
+    background:conic-gradient(from 225deg, var(--accent) 0deg, var(--accent) var(--ang,90deg),
+      #00000040 var(--ang,90deg), #00000040 270deg, transparent 270deg);
+    -webkit-mask:radial-gradient(circle, transparent 55%, #000 56%);
+    mask:radial-gradient(circle, transparent 55%, #000 56%)}
+  .knob::after{content:'';position:absolute;left:50%;top:7px;width:2px;height:12px;
+    background:var(--text);transform-origin:50% 15px;
+    transform:translateX(-50%) rotate(var(--rot,0deg));border-radius:1px;
+    box-shadow:0 0 4px var(--accent)}
+  .knob.col2::before{background:conic-gradient(from 225deg, var(--accent2) 0deg, var(--accent2) var(--ang,90deg),
+    #00000040 var(--ang,90deg), #00000040 270deg, transparent 270deg)}
+  .knob.col2::after{box-shadow:0 0 4px var(--accent2)}
+  .knob.col3::before{background:conic-gradient(from 225deg, var(--accent3) 0deg, var(--accent3) var(--ang,90deg),
+    #00000040 var(--ang,90deg), #00000040 270deg, transparent 270deg)}
+  .knob.col3::after{box-shadow:0 0 4px var(--accent3)}
+  .knob.col4::before{background:conic-gradient(from 225deg, var(--green) 0deg, var(--green) var(--ang,90deg),
+    #00000040 var(--ang,90deg), #00000040 270deg, transparent 270deg)}
+  .knob.col4::after{box-shadow:0 0 4px var(--green)}
+  .knob-label{font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;text-align:center}
+  .knob-val{font-size:9px;color:var(--text);min-height:11px;text-align:center}
+
+  /* Сегментные кнопки центрируются */
+  .seg{display:inline-flex;background:#0e1119;border:1px solid var(--line);
+    border-radius:5px;overflow:hidden;align-self:center;width:fit-content;max-width:100%}
+  .seg button{background:transparent;color:var(--muted);border:0;padding:3px 9px;
+    cursor:pointer;font-family:inherit;font-size:10px;letter-spacing:1px;white-space:nowrap}
+  .seg button.on{background:linear-gradient(180deg,var(--accent),#cc5a25);color:#fff}
+  .seg.col2 button.on{background:linear-gradient(180deg,var(--accent2),#2ba0c0);color:#fff}
+  .seg.col3 button.on{background:linear-gradient(180deg,var(--accent3),#7a4ac0);color:#fff}
+  .seg.col4 button.on{background:linear-gradient(180deg,var(--green),#3a8a64);color:#fff}
+
+  .m-osc1   {grid-column:span 3; grid-row:1}
+  .m-osc2   {grid-column:span 3; grid-row:1}
+  .m-mixer  {grid-column:span 2; grid-row:1}
+  .m-filter {grid-column:span 6; grid-row:1}
+
+  .m-fenv   {grid-column:span 2; grid-row:2}
+  .m-aenv   {grid-column:span 2; grid-row:2}
+  .m-lfo    {grid-column:span 3; grid-row:2}
+  .m-chorus {grid-column:span 3; grid-row:2}
+  .m-delay  {grid-column:span 3; grid-row:2}
+  .m-master {grid-column:span 1; grid-row:2}
+
+  footer{padding:5px 14px;font-size:10px;color:var(--muted);
+    background:#0a0c14;border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;flex:0 0 auto}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">NEBULA <small>VST3 · ANALOG SYNTH</small></div>
+  <div class="hint">Колесо = подстройка · Двойной клик = сброс · ПКМ = меню FL Studio · Shift = точно</div>
+</header>
+
+<main>
+  <section class="module m-osc1">
+    <h3><span class="dot"></span>OSCILLATOR 1</h3>
+    <div class="center"><div class="seg" data-pid="0">
+      <button data-val="0">SIN</button><button data-val="1">TRI</button>
+      <button data-val="2">SAW</button><button data-val="3">SQR</button>
+    </div></div>
+    <div class="row">
+      <div class="knob-wrap"><div class="knob" data-pid="1"></div><div class="knob-label">OCT</div><div class="knob-val">0</div></div>
+      <div class="knob-wrap"><div class="knob" data-pid="2"></div><div class="knob-label">SEMI</div><div class="knob-val">0</div></div>
+      <div class="knob-wrap"><div class="knob" data-pid="3"></div><div class="knob-label">FINE</div><div class="knob-val">0</div></div>
+      <div class="knob-wrap"><div class="knob" data-pid="4"></div><div class="knob-label">PW</div><div class="knob-val">50%</div></div>
+    </div>
+  </section>
+
+  <section class="module m-osc2">
+    <h3><span class="dot" style="background:var(--accent2);box-shadow:0 0 6px var(--accent2)"></span>OSCILLATOR 2</h3>
+    <div class="center"><div class="seg col2" data-pid="5">
+      <button data-val="0">SIN</button><button data-val="1">TRI</button>
+      <button data-val="2">SAW</button><button data-val="3">SQR</button>
+    </div></div>
+    <div class="row">
+      <div class="knob-wrap"><div class="knob col2" data-pid="6"></div><div class="knob-label">OCT</div><div class="knob-val">0</div></div>
+      <div class="knob-wrap"><div class="knob col2" data-pid="7"></div><div class="knob-label">SEMI</div><div class="knob-val">0</div></div>
+      <div class="knob-wrap"><div class="knob col2" data-pid="8"></div><div class="knob-label">FINE</div><div class="knob-val">0</div></div>
+      <div class="knob-wrap"><div class="knob col2" data-pid="9"></div><div class="knob-label">PW</div><div class="knob-val">50%</div></div>
+    </div>
+  </section>
+
+  <section class="module m-mixer">
+    <h3><span class="dot" style="background:var(--green);box-shadow:0 0 6px var(--green)"></span>MIXER</h3>
+    <div class="row" style="flex:1">
+      <div class="knob-wrap"><div class="knob" data-pid="10"></div><div class="knob-label">OSC1</div><div class="knob-val">70%</div></div>
+      <div class="knob-wrap"><div class="knob col2" data-pid="11"></div><div class="knob-label">OSC2</div><div class="knob-val">0%</div></div>
+      <div class="knob-wrap"><div class="knob col4" data-pid="12"></div><div class="knob-label">SUB</div><div class="knob-val">0%</div></div>
+      <div class="knob-wrap"><div class="knob col4" data-pid="13"></div><div class="knob-label">NOISE</div><div class="knob-val">0%</div></div>
+    </div>
+  </section>
+
+  <section class="module m-filter">
+    <h3><span class="dot" style="background:var(--accent3);box-shadow:0 0 6px var(--accent3)"></span>FILTER · VCF</h3>
+    <div class="center"><div class="seg col3" data-pid="14">
+      <button data-val="0">LP</button><button data-val="1">HP</button>
+      <button data-val="2">BP</button><button data-val="3">NOTCH</button>
+    </div></div>
+    <div class="row">
+      <div class="knob-wrap"><div class="knob col3" data-pid="15"></div><div class="knob-label">CUTOFF</div><div class="knob-val">—</div></div>
+      <div class="knob-wrap"><div class="knob col3" data-pid="16"></div><div class="knob-label">RESO</div><div class="knob-val">—</div></div>
+      <div class="knob-wrap"><div class="knob col3" data-pid="17"></div><div class="knob-label">ENV AMT</div><div class="knob-val">—</div></div>
+      <div class="knob-wrap"><div class="knob col3" data-pid="18"></div><div class="knob-label">KBD TRK</div><div class="knob-val">—</div></div>
+      <div class="knob-wrap"><div class="knob col3" data-pid="19"></div><div class="knob-label">DRIVE</div><div class="knob-val">—</div></div>
+    </div>
+  </section>
+
+  <section class="module m-fenv">
+    <h3><span class="dot" style="background:var(--accent3);box-shadow:0 0 6px var(--accent3)"></span>FILTER ENV</h3>
+    <div class="row" style="flex:1">
+      <div class="knob-wrap"><div class="knob col3" data-pid="20"></div><div class="knob-label">A</div><div class="knob-val">—</div></div>
+      <div class="knob-wrap"><div class="knob col3" data-pid="21"></div><div class="knob-label">D</div><div class="knob-val">—</div></div>
+      <div class="knob-wrap"><div class="knob col3" data-pid="22"></div><div class="knob-label">S</div><div class="knob-val">—</div></div>
+      <div class="knob-wrap"><div class="knob col3" data-pid="23"></div><div class="knob-label">R</div><div class="knob-val">—</div></div>
+    </div>
+  </section>
+
+  <section class="module m-aenv">
+    <h3><span class="dot" style="background:var(--green);box-shadow:0 0 6px var(--green)"></span>AMP ENV · VCA</h3>
+    <div class="row" style="flex:1">
+      <div class="knob-wrap"><div class="knob col4" data-pid="24"></div><div class="knob-label">A</div><div class="knob-val">—</div></div>
+      <div class="knob-wrap"><div class="knob col4" data-pid="25"></div><div class="knob-label">D</div><div class="knob-val">—</div></div>
+      <div class="knob-wrap"><div class="knob col4" data-pid="26"></div><div class="knob-label">S</div><div class="knob-val">—</div></div>
+      <div class="knob-wrap"><div class="knob col4" data-pid="27"></div><div class="knob-label">R</div><div class="knob-val">—</div></div>
+    </div>
+  </section>
+
+  <section class="module m-lfo">
+    <h3><span class="dot" style="background:var(--accent2);box-shadow:0 0 6px var(--accent2)"></span>LFO</h3>
+    <div class="center"><div class="seg col2" data-pid="28">
+      <button data-val="0">SIN</button><button data-val="1">TRI</button>
+      <button data-val="2">SQR</button><button data-val="3">SAW</button>
+    </div></div>
+    <div class="center"><div class="seg col2" data-pid="29">
+      <button data-val="0">PITCH</button><button data-val="1">FILT</button>
+      <button data-val="2">AMP</button><button data-val="3">PW</button>
+    </div></div>
+    <div class="row">
+      <div class="knob-wrap"><div class="knob col2" data-pid="30"></div><div class="knob-label">RATE</div><div class="knob-val">—</div></div>
+      <div class="knob-wrap"><div class="knob col2" data-pid="31"></div><div class="knob-label">AMOUNT</div><div class="knob-val">—</div></div>
+    </div>
+  </section>
+
+  <section class="module m-chorus">
+    <h3><span class="dot"></span>CHORUS</h3>
+    <div class="center"><div class="seg" data-pid="32">
+      <button data-val="0">CLASSIC</button><button data-val="1">LUSH</button><button data-val="2">ENSEMBLE</button>
+    </div></div>
+    <div class="row">
+      <div class="knob-wrap"><div class="knob" data-pid="33"></div><div class="knob-label">MIX</div><div class="knob-val">—</div></div>
+      <div class="knob-wrap"><div class="knob" data-pid="34"></div><div class="knob-label">RATE</div><div class="knob-val">—</div></div>
+      <div class="knob-wrap"><div class="knob" data-pid="35"></div><div class="knob-label">DEPTH</div><div class="knob-val">—</div></div>
+    </div>
+  </section>
+
+  <section class="module m-delay">
+    <h3><span class="dot"></span>DELAY · REVERB</h3>
+    <div class="center"><div class="seg" data-pid="36">
+      <button data-val="0">STEREO</button><button data-val="1">PING-PONG</button>
+    </div></div>
+    <div class="row">
+      <div class="knob-wrap"><div class="knob" data-pid="37"></div><div class="knob-label">DLY MIX</div><div class="knob-val">—</div></div>
+      <div class="knob-wrap"><div class="knob" data-pid="38"></div><div class="knob-label">TIME</div><div class="knob-val">—</div></div>
+      <div class="knob-wrap"><div class="knob" data-pid="39"></div><div class="knob-label">FBK</div><div class="knob-val">—</div></div>
+      <div class="knob-wrap"><div class="knob col2" data-pid="40"></div><div class="knob-label">REVERB</div><div class="knob-val">—</div></div>
+    </div>
+  </section>
+
+  <section class="module m-master">
+    <h3><span class="dot" style="background:var(--green);box-shadow:0 0 6px var(--green)"></span>VOL</h3>
+    <div class="row" style="flex:1;align-items:center;justify-content:center">
+      <div class="knob-wrap">
+        <div class="knob col4" data-pid="41" style="width:54px;height:54px"></div>
+        <div class="knob-label">MASTER</div><div class="knob-val">—</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div>NEBULA v1.2 · 16-voice polyphony · stereo FX</div>
+  <div>MIDI принимается от хоста · автоматизация активна</div>
+</footer>
+
+<script>
+const fmtT  = v => v<1 ? Math.round(v*1000)+' ms' : v.toFixed(2)+' s';
+const fmtP  = v => Math.round(v*100)+'%';
+const fmtHz = v => v>=1000 ? (v/1000).toFixed(2)+' kHz' : Math.round(v)+' Hz';
+
+/* ИНДЕКСЫ ДОЛЖНЫ СОВПАДАТЬ с ParameterIds.h. Минимумы/максимумы/log тоже. */
+const PARAMS = [
+  {min:0,max:3,step:1,fmt:v=>['SIN','TRI','SAW','SQR'][v|0]},          // 0  osc1.wave
+  {min:-2,max:2,step:1,fmt:v=>(v|0)+''},                                // 1
+  {min:-12,max:12,step:1,fmt:v=>(v|0)+''},
+  {min:-50,max:50,fmt:v=>v.toFixed(0)},
+  {min:0,max:1,fmt:fmtP},
+  {min:0,max:3,step:1,fmt:v=>['SIN','TRI','SAW','SQR'][v|0]},
+  {min:-2,max:2,step:1,fmt:v=>(v|0)+''},
+  {min:-12,max:12,step:1,fmt:v=>(v|0)+''},
+  {min:-50,max:50,fmt:v=>v.toFixed(0)},
+  {min:0,max:1,fmt:fmtP},
+  {min:0,max:1,fmt:fmtP},                                              // 10 mix
+  {min:0,max:1,fmt:fmtP},
+  {min:0,max:1,fmt:fmtP},
+  {min:0,max:1,fmt:fmtP},
+  {min:0,max:3,step:1,fmt:v=>['LP','HP','BP','NOTCH'][v|0]},           // 14
+  {min:20,max:20000,log:true,fmt:fmtHz},
+  {min:0.1,max:20,fmt:v=>v.toFixed(2)},
+  {min:-1,max:1,fmt:fmtP},
+  {min:0,max:1,fmt:fmtP},
+  {min:1,max:10,fmt:v=>v.toFixed(2)},
+  {min:0.001,max:4,log:true,fmt:fmtT},                                 // 20 fenv
+  {min:0.001,max:4,log:true,fmt:fmtT},
+  {min:0,max:1,fmt:fmtP},
+  {min:0.001,max:6,log:true,fmt:fmtT},
+  {min:0.001,max:4,log:true,fmt:fmtT},                                 // 24 aenv
+  {min:0.001,max:4,log:true,fmt:fmtT},
+  {min:0,max:1,fmt:fmtP},
+  {min:0.001,max:6,log:true,fmt:fmtT},
+  {min:0,max:3,step:1,fmt:v=>['SIN','TRI','SQR','SAW'][v|0]},          // 28 lfo
+  {min:0,max:3,step:1,fmt:v=>['PITCH','FILT','AMP','PW'][v|0]},
+  {min:0.05,max:30,log:true,fmt:v=>v.toFixed(2)+' Hz'},
+  {min:0,max:1,fmt:fmtP},
+  {min:0,max:2,step:1,fmt:v=>['CLASSIC','LUSH','ENSEMBLE'][v|0]},      // 32 chorus.mode
+  {min:0,max:1,fmt:fmtP},
+  {min:0.05,max:8,log:true,fmt:v=>v.toFixed(2)+' Hz'},
+  {min:0,max:1,fmt:fmtP},
+  {min:0,max:1,step:1,fmt:v=>['STEREO','PING-PONG'][v|0]},              // 36 delay.mode
+  {min:0,max:1,fmt:fmtP},
+  {min:0.05,max:1,fmt:v=>Math.round(v*1000)+' ms'},
+  {min:0,max:0.85,fmt:fmtP},
+  {min:0,max:1,fmt:fmtP},                                              // 40 reverb
+  {min:0,max:2,fmt:v=>Math.round(v*100)+'%'}                           // 41 master
+];
+
+function denorm(p, n){
+  if (p.step){
+    const range = p.max-p.min;
+    const steps = Math.round(range/p.step)+1;
+    let i = Math.floor(n*steps); if (i>=steps) i=steps-1;
+    return p.min + i*p.step;
+  }
+  if (p.log){
+    const lmin=Math.log(p.min), lmax=Math.log(p.max);
+    return Math.exp(lmin+(lmax-lmin)*n);
+  }
+  return p.min + (p.max-p.min)*n;
+}
+function normOf(p, v){
+  if (p.step){
+    const range = p.max-p.min;
+    const steps = Math.round(range/p.step)+1;
+    const i = Math.round((v-p.min)/p.step);
+    return Math.min(0.999, Math.max(0, i/steps + 0.5/steps));
+  }
+  if (p.log){
+    const lmin=Math.log(p.min), lmax=Math.log(p.max);
+    return (Math.log(v)-lmin)/(lmax-lmin);
+  }
+  return (v-p.min)/(p.max-p.min);
+}
+
+// Дефолты приходят из C++ в самом первом nebulaInit() — храним их там же.
+const defaultsNorm = new Array(PARAMS.length).fill(0.5);
+
+const knobs = new Map();
+const segs  = new Map();
+
+function postMsg(obj){
+  if (window.chrome && window.chrome.webview){
+    window.chrome.webview.postMessage(JSON.stringify(obj));
+  }
+}
+function sendParam(pid, n){
+  n = Math.min(1, Math.max(0, n));
+  postMsg({type:'param', id:pid, value:n});
+}
+function beginEdit(pid){ postMsg({type:'beginEdit', id:pid}); }
+function endEdit(pid){ postMsg({type:'endEdit', id:pid}); }
+function requestHostMenu(pid, screenX, screenY){
+  postMsg({type:'contextMenu', id:pid, x:screenX, y:screenY});
+}
+
+function updateKnobUI(pid, n){
+  const k = knobs.get(pid); if (!k) return;
+  const p = PARAMS[pid];
+  k.el.style.setProperty('--ang', (n*270)+'deg');
+  k.el.style.setProperty('--rot', (-135 + n*270)+'deg');
+  k.valEl.textContent = p.fmt(denorm(p, n));
+  k.current = n;
+}
+function updateSegUI(pid, n){
+  const s = segs.get(pid); if (!s) return;
+  const v = denorm(PARAMS[pid], n);
+  s.seg.querySelectorAll('button').forEach(b=>{
+    b.classList.toggle('on', Math.abs(parseFloat(b.dataset.val) - v) < 0.5);
+  });
+}
+
+document.querySelectorAll('.knob').forEach(el=>{
+  const pid = parseInt(el.dataset.pid);
+  const valEl = el.parentElement.querySelector('.knob-val');
+  knobs.set(pid, {el, valEl, current:0});
+
+  let dragging=false, startY=0, startN=0, dragSent=false;
+
+  el.addEventListener('mousedown',e=>{
+    if (e.button !== 0) return;
+    dragging=true; startY=e.clientY; startN=knobs.get(pid).current; dragSent=false;
+    beginEdit(pid);
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove',e=>{
+    if(!dragging) return;
+    const sens = e.shiftKey?0.001:0.005;
+    const newN = Math.min(1, Math.max(0, startN + (startY-e.clientY)*sens));
+    updateKnobUI(pid, newN); sendParam(pid, newN); dragSent=true;
+  });
+  window.addEventListener('mouseup',()=>{
+    if (dragging){ dragging=false; endEdit(pid); }
+  });
+
+  // ПКМ: НЕ сбрасываем, а просим хост (FL Studio) показать своё меню.
+  // FL покажет «Edit events», «Browse parameters», «Init», «Copy/Paste» и т.д.
+  el.addEventListener('contextmenu',e=>{
+    e.preventDefault();
+    requestHostMenu(pid, e.clientX, e.clientY);
+  });
+
+  // Дабл-клик: сброс к init-дефолту, который пришёл из C++.
+  el.addEventListener('dblclick',e=>{
+    const n = defaultsNorm[pid];
+    beginEdit(pid); updateKnobUI(pid, n); sendParam(pid, n); endEdit(pid);
+  });
+
+  el.addEventListener('wheel',e=>{
+    e.preventDefault();
+    const cur = knobs.get(pid).current;
+    const step = e.shiftKey ? 0.005 : 0.03;
+    const newN = Math.min(1, Math.max(0, cur - Math.sign(e.deltaY)*step));
+    beginEdit(pid); updateKnobUI(pid, newN); sendParam(pid, newN); endEdit(pid);
+  }, {passive:false});
+});
+
+document.querySelectorAll('.seg').forEach(seg=>{
+  const pid = parseInt(seg.dataset.pid);
+  segs.set(pid, {seg});
+  seg.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const v = parseFloat(b.dataset.val);
+      const n = normOf(PARAMS[pid], v);
+      beginEdit(pid); sendParam(pid, n); endEdit(pid);
+      seg.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+    });
+    b.addEventListener('contextmenu', e=>{
+      e.preventDefault();
+      requestHostMenu(pid, e.clientX, e.clientY);
+    });
+  });
+});
+
+// Первый init: C++ присылает текущие значения параметров.
+// При первом вызове сохраняем их как «init-дефолты» (это то, что в C++
+// в paramInfo() как .def). На последующих обновлениях параметров от хоста
+// дефолты не меняются.
+let receivedFirstInit = false;
+window.nebulaInit = function(normValues){
+  if (!receivedFirstInit){
+    for (let i = 0; i < normValues.length; ++i) defaultsNorm[i] = normValues[i];
+    receivedFirstInit = true;
+  }
+  for (let pid = 0; pid < normValues.length; ++pid){
+    if (knobs.has(pid)) updateKnobUI(pid, normValues[pid]);
+    if (segs.has(pid))  updateSegUI(pid, normValues[pid]);
+  }
+};
+
+window.nebulaSetParam = function(pid, norm){
+  if (knobs.has(pid)) updateKnobUI(pid, norm);
+  if (segs.has(pid))  updateSegUI(pid, norm);
+};
+</script>
+</body>
+</html>
