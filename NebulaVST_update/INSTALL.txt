@@ -1,0 +1,95 @@
+NEBULA v1.3 — большое обновление
+=================================
+
+ВНИМАНИЕ: в этой версии 2 НОВЫХ файла:
+    src/dsp/Drive.h
+    src/dsp/Noise.h
+Поэтому ОБЯЗАТЕЛЬНО перенастройте CMake (см. шаг 3).
+
+Установка:
+----------
+1. Скопируйте папку src/ из архива поверх своей:
+   C:\Users\administrator\Documents\Nebula\NebulaVST\src\
+   Подтвердите замену файлов. Новые Drive.h и Noise.h тоже скопируются.
+
+2. Откройте PowerShell:
+
+   cd C:\Users\administrator\Documents\Nebula\NebulaVST
+
+3. ПЕРЕНАСТРОЙТЕ CMake (обязательно — есть новые файлы):
+
+   cmake -B build -S . -G "Visual Studio 18 2026" -A x64 `
+     -DWEBVIEW2_DIR="$PWD\external\webview2" `
+     -DVST3_SDK_PATH="$PWD\external\vst3sdk"
+
+4. Соберите:
+
+   cmake --build build --config Release
+
+5. PowerShell от АДМИНА:
+
+   Remove-Item "C:\Program Files\Common Files\VST3\Nebula.vst3" -Recurse -Force
+   Copy-Item "C:\Users\administrator\Documents\Nebula\NebulaVST\build\VST3\Release\Nebula.vst3" `
+             "C:\Program Files\Common Files\VST3\" -Recurse -Force
+
+6. В FL Studio закройте окно плагина и откройте заново.
+
+
+Что нового в v1.3:
+==================
+
+ЗВУК
+- Полностью переработан стерео-тракт:
+  * каждый голос имеет свою панораму (управляется крутилкой SPREAD)
+  * Chorus теперь истинно-стерео (раньше моноизировал)
+  * Reverb принимает стерео-вход (раньше суммировал в моно)
+- Аналоговый дрейф (крутилка ANALOG в модуле GLOBAL): каждый голос имеет
+  свой медленный pitch-LFO ~0.3-0.5 Hz с ±1.5 центов
+- SVF-фильтр с tanh-нелинейностью в петле — более «аналоговый» резонанс,
+  самовозбуждение при Q ~ 35+ (макс. 50 — до боли в ушах :)
+- 3 типа драйва: TUBE (мягкий ламповый), FUZZ (фуз-педаль), FOLD (wavefolder)
+- 3 цвета шума: WHITE / PINK / BROWN (Paul Kellet pink-noise)
+- PW теперь применяется ТОЛЬКО к SQR (раньше влияла на TRI — это был баг)
+- Громкость поднята существенно, нормировка по голосам теперь статичная
+  (без «новые ноты тише», как было в v1.2)
+
+МОДУЛЯЦИЯ
+- Sample & Hold как 5-й тип LFO wave
+- Portamento (GLIDE) с режимами ALWAYS / LEGATO
+- Spread — стерео-разлёт голосов
+- Аналоговый дрейф per-voice
+
+УПРАВЛЕНИЕ
+- LED-кнопки bypass у OSC2, OSC1, FILTER, CHORUS, DELAY, REVERB
+  (модули можно отключать)
+- Контекстное меню обновляется СРАЗУ при Paste из меню FL Studio
+  (исправлен баг с UI-синхронизацией)
+- PC-клавиатура (A S D F G H J K + W E T Y U + Z/X октава) теперь
+  играет вне зависимости от фокуса — работает даже когда WebView не имеет фокуса.
+  Внутри плагина создаётся отдельное HWND-окно, перехватывающее WM_MOUSEACTIVATE
+  для исправления проблемы с фокусом.
+- Кривая распределения времени для всех A/D/R и GLIDE — Power3 вместо log,
+  теперь крутилка распределяет 1ms→10ms→100ms→1s→6s равномерно по углу
+
+ПРЕСЕТЫ (20 шт., 5 категорий)
+  Init      — Init
+  Bass      — Sub Bass, Acid 303, Reese
+  Lead      — Saw Lead, Pluck, Square Lead, Hoover
+  Pad       — Warm Pad, String Ensemble, Glassy Bell
+  Keys      — EP Soft, Organ, Toy Piano
+  FX        — Sci-Fi Sweep, S&H Random, Lofi Wobble, Drone, Brown Wind
+
+ИНТЕРФЕЙС
+- Сделан компактнее (мельче крутилки, плотнее layout) — больше параметров
+  помещается в окно того же размера
+- 16-колонная сетка, всё на экране без скролла
+- Селектор пресетов в шапке + кнопки ◀ ▶
+
+В РОУДМАПЕ (не вошло в v1.3):
+- Вкладка «педали» с лофи-эффектами (tape, vinyl, bit-crush, reverse reverb)
+- Второй LFO
+- Mod-matrix (mapping любого LFO/env на любой параметр)
+
+Если что-то сломалось:
+- При первой сборке возможна ошибка про Drive.h/Noise.h — это значит
+  CMake не пересоздавался (шаг 3). Удалите папку build/ и повторите.
